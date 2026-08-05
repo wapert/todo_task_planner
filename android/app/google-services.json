@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "599965724510",
+    "project_id": "todo-planner-167b3",
+    "storage_bucket": "todo-planner-167b3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:599965724510:android:24e02f99a4dc8e1fa769cf",
+        "android_client_info": {
+          "package_name": "com.todo.taskplanner.todo_task_planner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "599965724510-hh1va9bjvhqqaejfnisnfnuik7a1fbdc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.todo.taskplanner.todo_task_planner",
+            "certificate_hash": "4df50a5ea5021371d28f611d3b2c2bdb70f7e9b9"
+          }
+        },
+        {
+          "client_id": "599965724510-6vtqo0vfi924b6c8j7g5b4g8g659m56f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTjRdUJZ3OCm4KxhsYoMCouhFMYojACnw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "599965724510-6vtqo0vfi924b6c8j7g5b4g8g659m56f.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "599965724510-gtpfmk6idhsm54t90g3g47ah9mpkqnls.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.todo.taskplanner.todoTaskPlanner"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

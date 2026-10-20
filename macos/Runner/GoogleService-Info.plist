@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CLIENT_ID</key>
+	<string>599965724510-6440fgd1veiu8cvolvig1do1ba9s9rms.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.599965724510-6440fgd1veiu8cvolvig1do1ba9s9rms</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>599965724510-hh1va9bjvhqqaejfnisnfnuik7a1fbdc.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
 	<string>AIzaSyA_ZpDyJKm-Yk08d8X6TeRFBiTwzxktpRc</string>
 	<key>GCM_SENDER_ID</key>
@@ -9,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.todo.taskplanner.todoTaskPlanner</string>
+	<string>com.wapertech.todoTaskPlanner</string>
 	<key>PROJECT_ID</key>
 	<string>todo-planner-167b3</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:599965724510:ios:e153aa2113866deca769cf</string>
+	<string>1:599965724510:ios:26e00b0d18ca6e11a769cf</string>
 </dict>
 </plist>

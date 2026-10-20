@@ -3,16 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'firebase_options.dart';
+import 'localization/app_locale.dart';
 import 'screens/auth_gate.dart';
 import 'services/auth_service.dart';
 import 'services/credential_store.dart';
+import 'services/notification_service.dart';
 import 'theme/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('zh_TW', null);
+  await initializeDateFormatting('en_US', null);
 
   String? firebaseError;
   try {
@@ -23,11 +27,19 @@ void main() async {
     firebaseError = '$e';
   }
 
+  // Time-zone tables and the channel must exist before any reminder is
+  // scheduled, which can happen as soon as the task list first loads.
+  await NotificationService.instance.init();
+
+  final localeController = AppLocaleController(const FlutterSecureStorage());
+  await localeController.load();
+
   runApp(
     MultiProvider(
       providers: [
         Provider.value(value: AuthService()),
         Provider.value(value: CredentialStore()),
+        ChangeNotifierProvider.value(value: localeController),
       ],
       child: TodoPlannerApp(firebaseError: firebaseError),
     ),
@@ -41,13 +53,14 @@ class TodoPlannerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeController = context.watch<AppLocaleController>();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: '待辦計畫',
       // The UI is written in Traditional Chinese, so pin the framework's own
       // dialogs (date/time pickers) to match instead of defaulting to English.
-      locale: const Locale('zh', 'TW'),
-      supportedLocales: const [Locale('zh', 'TW')],
+      locale: localeController.locale,
+      supportedLocales: const [Locale('zh', 'TW'), Locale('en')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -66,6 +79,7 @@ class TodoPlannerApp extends StatelessWidget {
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
+          centerTitle: false,
         ),
         useMaterial3: true,
       ),

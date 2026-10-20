@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../localization/app_locale.dart';
 import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
 import '../services/credential_store.dart';
@@ -228,17 +229,48 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: SegmentedButton<AppLanguage>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(
+                          value: AppLanguage.traditionalChinese,
+                          label: Text('中文'),
+                        ),
+                        ButtonSegment(
+                          value: AppLanguage.english,
+                          label: Text('EN'),
+                        ),
+                      ],
+                      selected: {context.appLocale.language},
+                      onSelectionChanged: (selection) => context
+                          .read<AppLocaleController>()
+                          .setLanguage(selection.first),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   const Icon(Icons.task_alt, size: 56, color: flaggedColor),
                   const SizedBox(height: 16),
-                  const Text(
-                    '待辦計畫',
+                  Text(
+                    context.tr('待辦計畫', 'Todo Planner'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _isSignUp ? '建立帳號以同步你的待辦事項' : '登入以同步你的待辦事項',
+                    _isSignUp
+                        ? context.tr(
+                            '建立帳號以同步你的待辦事項',
+                            'Create an account to sync your tasks',
+                          )
+                        : context.tr(
+                            '登入以同步你的待辦事項',
+                            'Sign in to sync your tasks',
+                          ),
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
@@ -255,9 +287,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       onPressed: _busy ? null : _googleSignIn,
                       icon: const Icon(Icons.account_circle_outlined, size: 22),
-                      label: const Text(
-                        '使用 Google 帳號登入',
-                        style: TextStyle(
+                      label: Text(
+                        context.tr('使用 Google 帳號登入', 'Continue with Google'),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -280,9 +312,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         onPressed: _busy ? null : _appleSignIn,
                         icon: const Icon(Icons.apple, size: 24),
-                        label: const Text(
-                          '使用 Apple 帳號登入',
-                          style: TextStyle(
+                        label: Text(
+                          context.tr('使用 Apple 帳號登入', 'Continue with Apple'),
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -298,7 +330,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          '或使用電子郵件',
+                          context.tr('或使用電子郵件', 'or use email'),
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey.shade500,
@@ -314,7 +346,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailCtrl,
                     keyboardType: TextInputType.emailAddress,
                     autocorrect: false,
-                    decoration: _fieldDeco('電子郵件', Icons.email_outlined),
+                    decoration: _fieldDeco(
+                      context.tr('電子郵件', 'Email'),
+                      Icons.email_outlined,
+                    ),
                   ),
                   const SizedBox(height: 14),
 
@@ -327,7 +362,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     onSubmitted: (_) => _isSignUp ? null : _submit(),
                     decoration:
                         _fieldDeco(
-                          _isSignUp ? '設定密碼' : '密碼',
+                          _isSignUp
+                              ? context.tr('設定密碼', 'Create password')
+                              : context.tr('密碼', 'Password'),
                           Icons.lock_outline,
                         ).copyWith(
                           suffixIcon: IconButton(
@@ -349,7 +386,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _pwConfirmCtrl,
                       obscureText: _obscure,
                       onSubmitted: (_) => _submit(),
-                      decoration: _fieldDeco('確認密碼', Icons.lock_outline),
+                      decoration: _fieldDeco(
+                        context.tr('確認密碼', 'Confirm password'),
+                        Icons.lock_outline,
+                      ),
                     ),
                   ],
 
@@ -358,9 +398,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: _busy ? null : _forgotPassword,
-                        child: const Text(
-                          '忘記密碼？',
-                          style: TextStyle(fontSize: 13),
+                        child: Text(
+                          context.tr('電子郵件帳號忘記密碼？', 'Forgot your password?'),
+                          style: const TextStyle(fontSize: 13),
                         ),
                       ),
                     ),
@@ -420,7 +460,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             )
                           : Text(
-                              _isSignUp ? '註冊' : '登入',
+                              _isSignUp
+                                  ? context.tr('註冊', 'Create account')
+                                  : context.tr('登入', 'Sign in'),
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -438,7 +480,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
-                            '或',
+                            context.tr('或', 'or'),
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey.shade500,
@@ -464,7 +506,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         icon: const Icon(Icons.fingerprint, size: 22),
                         label: Text(
-                          '使用 $_bioLabel 登入',
+                          context.tr(
+                            '使用 $_bioLabel 登入',
+                            'Sign in with ${localizedDeviceAuthLabel(_bioLabel, english: true)}',
+                          ),
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -493,7 +538,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        _isSignUp ? '已經有帳號了？' : '還沒有帳號？',
+                        _isSignUp
+                            ? context.tr('已經有帳號了？', 'Already have an account?')
+                            : context.tr('還沒有帳號？', 'Need an account?'),
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade600,
@@ -508,7 +555,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _pwConfirmCtrl.clear();
                               }),
                         child: Text(
-                          _isSignUp ? '登入' : '註冊',
+                          _isSignUp
+                              ? context.tr('登入', 'Sign in')
+                              : context.tr('註冊', 'Sign up'),
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,

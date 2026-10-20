@@ -27,11 +27,22 @@ class AppleCalendarService {
     return requested.isSuccess && requested.data == true;
   }
 
-  /// Creates one event per task-day. Returns a message for the result dialog.
-  Future<String> createEvents(List<TaskCalendarEvent> events) async {
-    if (events.isEmpty) {
-      return '沒有選擇任何任務日期可同步。';
+  Future<void> requestPermission() async {
+    if (!await _ensurePermission()) {
+      throw const AppleCalendarException('未取得行事曆存取權限，請到「設定」開啟權限後再試一次。');
     }
+  }
+
+  /// Creates one event per task-day. Returns a message for the result dialog.
+  Future<String> createEvents(
+    List<TaskCalendarEvent> events, {
+    required CalendarEventSynced onEventSynced,
+    bool updateExisting = false,
+  }) async {
+    final eventsToSync = updateExisting
+        ? events
+        : events.where((event) => event.externalEventId == null).toList();
+    if (eventsToSync.isEmpty) return '沒有新事件。';
     if (!await _ensurePermission()) {
       throw const AppleCalendarException('未取得行事曆存取權限，請到「設定」開啟權限後再試一次。');
     }
@@ -50,7 +61,8 @@ class AppleCalendarService {
 
     final location = tz.local;
     var created = 0;
-    for (final taskEvent in events) {
+    var updated = 0;
+    for (final taskEvent in eventsToSync) {
       final time = taskEvent.time;
       final day = taskEvent.day;
       final start = tz.TZDateTime(
@@ -63,6 +75,7 @@ class AppleCalendarService {
       );
       final event = dc.Event(
         target.id,
+        eventId: taskEvent.externalEventId,
         title: taskEvent.title,
         description: taskEvent.notes.isEmpty ? null : taskEvent.notes,
         start: start,
@@ -72,13 +85,36 @@ class AppleCalendarService {
         allDay: time == null,
       );
       final result = await _plugin.createOrUpdateEvent(event);
-      if (result?.isSuccess == true) created++;
+      if (result?.isSuccess == true && result?.data != null) {
+        if (taskEvent.externalEventId == null) {
+          created++;
+        } else {
+          updated++;
+        }
+        await onEventSynced(taskEvent, result!.data!);
+      }
     }
 
     if (created == 0) {
       throw const AppleCalendarException('建立行事曆事件失敗，請稍後再試。');
     }
-    return '已在「${target.name ?? '行事曆'}」建立 $created 個事件。';
+    return '「${target.name ?? '行事曆'}」同步完成：新增 $created 個，更新 $updated 個事件。';
+  }
+
+  Future<void> deleteEvents(Iterable<String> eventIds) async {
+    final ids = eventIds.where((id) => id.isNotEmpty).toSet();
+    if (ids.isEmpty) return;
+    if (!await _ensurePermission()) {
+      throw const AppleCalendarException('未取得行事曆存取權限，無法刪除已同步的事件。');
+    }
+    final calendars =
+        (await _plugin.retrieveCalendars()).data ?? <dc.Calendar>[];
+    for (final eventId in ids) {
+      for (final calendar in calendars) {
+        final result = await _plugin.deleteEvent(calendar.id, eventId);
+        if (result.isSuccess && result.data == true) break;
+      }
+    }
   }
 }
 

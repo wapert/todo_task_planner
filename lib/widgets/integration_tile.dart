@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../localization/app_locale.dart';
 import '../models/planner_integration.dart';
+import '../providers/task_provider.dart';
 import 'panel.dart';
 
 class IntegrationPanel extends StatelessWidget {
@@ -8,6 +11,8 @@ class IntegrationPanel extends StatelessWidget {
     super.key,
     required this.integrations,
     required this.onSetUp,
+    this.calendarSyncEnabled,
+    this.onCalendarSyncChanged,
     this.connectedCalendarName,
     this.onChangeCalendar,
     this.onDisconnectCalendar,
@@ -15,6 +20,8 @@ class IntegrationPanel extends StatelessWidget {
 
   final List<PlannerIntegration> integrations;
   final ValueChanged<PlannerIntegration> onSetUp;
+  final bool? calendarSyncEnabled;
+  final ValueChanged<bool>? onCalendarSyncChanged;
   final String? connectedCalendarName;
   final VoidCallback? onChangeCalendar;
   final VoidCallback? onDisconnectCalendar;
@@ -22,7 +29,7 @@ class IntegrationPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Panel(
-      title: '連結',
+      title: context.tr('連結', 'Connections'),
       icon: Icons.hub_outlined,
       child: Column(
         children: integrations
@@ -30,6 +37,8 @@ class IntegrationPanel extends StatelessWidget {
               (integration) => IntegrationTile(
                 integration: integration,
                 onSetUp: onSetUp,
+                calendarSyncEnabled: calendarSyncEnabled,
+                onCalendarSyncChanged: onCalendarSyncChanged,
                 connectedCalendarName: integration.name == 'Calendar Accounts'
                     ? connectedCalendarName
                     : null,
@@ -52,6 +61,8 @@ class IntegrationTile extends StatelessWidget {
     super.key,
     required this.integration,
     required this.onSetUp,
+    this.calendarSyncEnabled,
+    this.onCalendarSyncChanged,
     this.connectedCalendarName,
     this.onChangeCalendar,
     this.onDisconnectCalendar,
@@ -59,57 +70,84 @@ class IntegrationTile extends StatelessWidget {
 
   final PlannerIntegration integration;
   final ValueChanged<PlannerIntegration> onSetUp;
+  final bool? calendarSyncEnabled;
+  final ValueChanged<bool>? onCalendarSyncChanged;
   final String? connectedCalendarName;
   final VoidCallback? onChangeCalendar;
   final VoidCallback? onDisconnectCalendar;
 
   @override
   Widget build(BuildContext context) {
+    final background = context.watch<TaskProvider>().backgroundColor;
     final ready = integration.status == IntegrationStatus.ready;
+    final isCalendar = integration.name.contains('Calendar');
     final showCalendarActions =
         ready && (onChangeCalendar != null || onDisconnectCalendar != null);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xFFFBFCFE),
+          color: background,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFE4E8F0)),
         ),
         child: ListTile(
           leading: Icon(integration.icon, color: const Color(0xFF2563EB)),
           title: Text(
-            integration.displayName,
+            context.isEnglish
+                ? _englishName(integration.name)
+                : integration.displayName,
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           subtitle: Text(
             ready && connectedCalendarName != null
-                ? '${integration.description}\n已連結：$connectedCalendarName'
+                ? context.tr(
+                    '${integration.description}\n已連結：$connectedCalendarName',
+                    '${_englishDescription(integration.name)}\nConnected: $connectedCalendarName',
+                  )
+                : context.isEnglish
+                ? _englishDescription(integration.name)
                 : integration.description,
           ),
           isThreeLine: ready && connectedCalendarName != null,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              OutlinedButton.icon(
-                onPressed: () => onSetUp(integration),
-                icon: Icon(ready ? Icons.check_circle : Icons.lock_open),
-                label: Text(ready ? '同步' : '設定'),
-              ),
+              if (isCalendar && onCalendarSyncChanged != null)
+                Switch(
+                  value: calendarSyncEnabled ?? false,
+                  onChanged: onCalendarSyncChanged,
+                )
+              else
+                OutlinedButton.icon(
+                  onPressed: () => onSetUp(integration),
+                  icon: Icon(
+                    isCalendar
+                        ? Icons.sync
+                        : ready
+                        ? Icons.check_circle
+                        : Icons.lock_open,
+                  ),
+                  label: Text(
+                    isCalendar || ready
+                        ? context.tr('同步', 'Sync')
+                        : context.tr('設定', 'Set up'),
+                  ),
+                ),
               if (showCalendarActions)
                 PopupMenuButton<VoidCallback>(
-                  tooltip: '更多選項',
+                  tooltip: context.tr('更多選項', 'More options'),
                   onSelected: (action) => action(),
                   itemBuilder: (context) => [
                     if (onChangeCalendar != null)
                       PopupMenuItem(
                         value: onChangeCalendar,
-                        child: const Text('變更日曆'),
+                        child: Text(context.tr('變更日曆', 'Change calendar')),
                       ),
                     if (onDisconnectCalendar != null)
                       PopupMenuItem(
                         value: onDisconnectCalendar,
-                        child: const Text('中斷連結'),
+                        child: Text(context.tr('中斷連結', 'Disconnect')),
                       ),
                   ],
                 ),
@@ -129,18 +167,53 @@ void showIntegrationSetup(
     context: context,
     builder: (context) {
       return AlertDialog(
-        title: Text('${integration.displayName}設定'),
-        content: Text(integrationSetupMessage(integration.name)),
+        title: Text(
+          context.tr(
+            '${integration.displayName}設定',
+            '${_englishName(integration.name)} setup',
+          ),
+        ),
+        content: Text(
+          context.isEnglish
+              ? _englishSetupMessage(integration.name)
+              : integrationSetupMessage(integration.name),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('關閉'),
+            child: Text(context.tr('關閉', 'Close')),
           ),
         ],
       );
     },
   );
 }
+
+String _englishName(String name) => switch (name) {
+  'Calendar Accounts' => 'Calendar Accounts',
+  'Google Calendar' => 'Google Calendar',
+  'Apple Mail' => 'Apple Mail',
+  'Yahoo Mail' => 'Yahoo Mail',
+  _ => name,
+};
+
+String _englishDescription(String name) => switch (name) {
+  'Calendar Accounts' =>
+    'Sync tasks to your device calendars, including iCloud.',
+  'Google Calendar' => 'Sync tasks as Google Calendar events.',
+  _ => 'Connect this service to sync data.',
+};
+
+String _englishSetupMessage(String name) => switch (name) {
+  'Google Calendar' =>
+    'Google OAuth credentials and Calendar API access are required to sync.',
+  'Apple Mail' =>
+    'Native macOS/iOS mail integration and platform-specific permission are required.',
+  'Yahoo Mail' =>
+    'Yahoo OAuth credentials and mail access are required to turn email into tasks.',
+  _ =>
+    'Provider credentials and a secure sign-in flow are required to sync data.',
+};
 
 String integrationSetupMessage(String name) {
   return switch (name) {

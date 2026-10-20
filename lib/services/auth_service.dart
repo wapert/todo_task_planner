@@ -34,6 +34,12 @@ class AuthService {
       ) ??
       false;
 
+  bool get hasPasswordProvider =>
+      _auth.currentUser?.providerData.any(
+        (info) => info.providerId == EmailAuthProvider.PROVIDER_ID,
+      ) ??
+      false;
+
   /// Signs in with Google, asking for the Calendar scope at the same time so
   /// syncing later needs no second consent screen.
   Future<void> signInWithGoogle() async {
@@ -53,10 +59,60 @@ class AuthService {
     );
   }
 
+  /// Links Google to the currently signed-in Firebase user. Linking—not
+  /// signing in—is essential here: it preserves the uid and therefore keeps
+  /// all existing tasks under the same Firestore account.
+  Future<void> linkGoogleAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('尚未登入');
+    if (isGoogleAccount) return;
+
+    await ensureGoogleInitialized();
+    // Always show the chooser so users do not accidentally link a previously
+    // cached Google identity.
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {
+      // The account chooser can still proceed when no cached session exists.
+    }
+    final account = await GoogleSignIn.instance.authenticate(
+      scopeHint: googleCalendarScopes,
+    );
+    final idToken = account.authentication.idToken;
+    if (idToken == null) {
+      throw FirebaseAuthException(
+        code: 'missing-id-token',
+        message: '無法取得 Google 憑證，請再試一次',
+      );
+    }
+    await user.linkWithCredential(
+      GoogleAuthProvider.credential(idToken: idToken),
+    );
+    await user.reload();
+  }
+
+  /// Adds an email/password login to the current account while retaining the
+  /// existing uid and task data. The email can differ from Apple's private
+  /// relay address, provided it is not already used by another account.
+  Future<void> linkEmailPassword(String email, String password) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('尚未登入');
+    if (hasPasswordProvider) return;
+    await user.linkWithCredential(
+      EmailAuthProvider.credential(email: email.trim(), password: password),
+    );
+    await user.reload();
+  }
+
   User? get currentUser => _auth.currentUser;
   String? get uid => _auth.currentUser?.uid;
   String? get email => _auth.currentUser?.email;
   bool get isSignedIn => _auth.currentUser != null;
+
+  /// A linked account may have Apple/Google and a Firebase password at the
+  /// same time. Password reset remains valid whenever the password provider
+  /// is present.
+  bool get canResetPassword => hasPasswordProvider;
 
   /// Emits on every sign-in / sign-out.
   Stream<User?> authStateChanges() => _auth.authStateChanges();
@@ -252,6 +308,11 @@ class AuthService {
           return '電子郵件或密碼錯誤';
         case 'email-already-in-use':
           return '此電子郵件已被註冊';
+        case 'credential-already-in-use':
+        case 'account-exists-with-different-credential':
+          return '這個登入方式已連結到另一個帳號，請改用其他帳號';
+        case 'provider-already-linked':
+          return '這個登入方式已經連結';
         case 'weak-password':
           return '密碼強度不足（至少 6 個字元）';
         case 'network-request-failed':

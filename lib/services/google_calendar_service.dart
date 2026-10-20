@@ -13,10 +13,24 @@ class GoogleCalendarService {
 
   Future<void> initialize() => AuthService.ensureGoogleInitialized();
 
-  Future<String> createEvents(List<TaskCalendarEvent> events) async {
-    if (events.isEmpty) {
-      return '沒有選擇任何任務日期可同步。';
-    }
+  Future<void> requestPermission() async {
+    await initialize();
+    final account =
+        await GoogleSignIn.instance.attemptLightweightAuthentication() ??
+        await GoogleSignIn.instance.authenticate(scopeHint: scopes);
+    await account.authorizationClient.authorizationForScopes(scopes) ??
+        await account.authorizationClient.authorizeScopes(scopes);
+  }
+
+  Future<String> createEvents(
+    List<TaskCalendarEvent> events, {
+    required CalendarEventSynced onEventSynced,
+    bool updateExisting = false,
+  }) async {
+    final eventsToSync = updateExisting
+        ? events
+        : events.where((event) => event.externalEventId == null).toList();
+    if (eventsToSync.isEmpty) return '沒有新事件。';
 
     await initialize();
 
@@ -33,10 +47,47 @@ class GoogleCalendarService {
     final client = authorization.authClient(scopes: scopes);
     try {
       final api = calendar.CalendarApi(client);
-      for (final taskEvent in events) {
-        await api.events.insert(_toGoogleEvent(taskEvent), 'primary');
+      var created = 0;
+      var updated = 0;
+      for (final taskEvent in eventsToSync) {
+        final existingId = taskEvent.externalEventId;
+        final syncedEvent = existingId == null
+            ? await api.events.insert(_toGoogleEvent(taskEvent), 'primary')
+            : await api.events.update(
+                _toGoogleEvent(taskEvent),
+                'primary',
+                existingId,
+              );
+        if (existingId == null) {
+          created++;
+        } else {
+          updated++;
+        }
+        final eventId = syncedEvent.id ?? existingId;
+        if (eventId != null) await onEventSynced(taskEvent, eventId);
       }
-      return '已建立 ${events.length} 個 Google 日曆事件。';
+      return 'Google 日曆同步完成：新增 $created 個，更新 $updated 個事件。';
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<void> deleteEvents(Iterable<String> eventIds) async {
+    final ids = eventIds.where((id) => id.isNotEmpty).toSet();
+    if (ids.isEmpty) return;
+    await initialize();
+    final account =
+        await GoogleSignIn.instance.attemptLightweightAuthentication() ??
+        await GoogleSignIn.instance.authenticate(scopeHint: scopes);
+    final authorization =
+        await account.authorizationClient.authorizationForScopes(scopes) ??
+        await account.authorizationClient.authorizeScopes(scopes);
+    final client = authorization.authClient(scopes: scopes);
+    try {
+      final api = calendar.CalendarApi(client);
+      for (final id in ids) {
+        await api.events.delete('primary', id);
+      }
     } finally {
       client.close();
     }

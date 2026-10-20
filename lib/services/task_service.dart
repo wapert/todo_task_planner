@@ -11,8 +11,48 @@ class TaskService {
   final String uid;
   final FirebaseFirestore _db;
 
+  DocumentReference<Map<String, dynamic>> get _userDoc =>
+      _db.collection('users').doc(uid);
+
   CollectionReference<Map<String, dynamic>> get _tasks =>
-      _db.collection('users').doc(uid).collection('tasks');
+      _userDoc.collection('tasks');
+
+  /// The user's category list. Emits null until they've customised it, so the
+  /// caller can fall back to the presets.
+  Stream<List<String>?> watchCategories() {
+    return _userDoc.snapshots().map((snapshot) {
+      final raw = snapshot.data()?['categories'] as List<dynamic>?;
+      return raw?.map((value) => value as String).toList();
+    });
+  }
+
+  /// Merged, so writing categories never clobbers anything else on the doc.
+  Future<void> saveCategories(List<String> categories) {
+    return _userDoc.set({'categories': categories}, SetOptions(merge: true));
+  }
+
+  Stream<Map<String, int>?> watchAppearance() {
+    return _userDoc.snapshots().map((snapshot) {
+      final raw = snapshot.data()?['appearance'] as Map<String, dynamic>?;
+      return raw?.map((key, value) => MapEntry(key, (value as num).toInt()));
+    });
+  }
+
+  Future<void> saveAppearance(Map<String, int> appearance) {
+    return _userDoc.set({'appearance': appearance}, SetOptions(merge: true));
+  }
+
+  Stream<bool> watchCalendarSyncEnabled() {
+    return _userDoc.snapshots().map(
+      (snapshot) => snapshot.data()?['calendarSyncEnabled'] as bool? ?? false,
+    );
+  }
+
+  Future<void> saveCalendarSyncEnabled(bool enabled) {
+    return _userDoc.set({
+      'calendarSyncEnabled': enabled,
+    }, SetOptions(merge: true));
+  }
 
   Stream<List<PlannerTask>> watchTasks() {
     return _tasks.snapshots().map(

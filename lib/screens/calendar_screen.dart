@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'package:table_calendar/table_calendar.dart' hide isSameDay;
 
+import '../localization/app_locale.dart';
 import '../providers/task_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/date_utils.dart';
 import '../widgets/panel.dart';
+import '../widgets/period_header.dart';
 import '../widgets/task_actions.dart';
 import '../widgets/task_tile.dart';
 
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key});
+  const CalendarScreen({super.key, required this.onOpenSettings});
+
+  final VoidCallback onOpenSettings;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -24,12 +29,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<TaskProvider>();
     final today = dateOnly(DateTime.now());
-    final weekDays = weekContaining(_selectedDay);
     final tasks = provider.tasksFor(_selectedDay);
 
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+    return Scaffold(
+      backgroundColor: provider.backgroundColor,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        toolbarHeight: 88,
+        backgroundColor: provider.effectiveToolbarColor,
+        foregroundColor: provider.toolbarForegroundColor,
+        title: PageHeaderText(
+          title: context.tr('行事曆', 'Calendar'),
+          subtitle: isSameDay(_selectedDay, today)
+              ? context.tr(
+                  '${fullDateLabel(_selectedDay)} · 今日',
+                  '${fullDateLabel(_selectedDay, english: true)} · Today',
+                )
+              : fullDateLabel(_selectedDay, english: context.isEnglish),
+        ),
+        actions: [
+          IconButton(
+            tooltip: context.tr('設定', 'Settings'),
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: widget.onOpenSettings,
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(4, 8, 4, 16),
         children: [
           Panel(
             child: TableCalendar<void>(
@@ -46,7 +73,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onPageChanged: (focused) => _focusedDay = focused,
               calendarFormat: CalendarFormat.month,
               eventLoader: (day) => provider.tasksFor(day),
-              locale: 'zh_TW',
+              locale: context.isEnglish ? 'en_US' : 'zh_TW',
               headerStyle: const HeaderStyle(
                 formatButtonVisible: false,
                 titleCentered: true,
@@ -54,7 +81,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 // settings button in the corner above it.
                 headerPadding: EdgeInsets.fromLTRB(0, 8, 40, 8),
               ),
-              startingDayOfWeek: StartingDayOfWeek.monday,
+              startingDayOfWeek: StartingDayOfWeek.sunday,
               calendarStyle: const CalendarStyle(
                 markerDecoration: BoxDecoration(
                   color: flaggedColor,
@@ -74,6 +101,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
           const SizedBox(height: 16),
           Panel(
+            padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
             child: tasks.isEmpty
                 ? const EmptyTaskState()
                 : Column(
@@ -82,16 +110,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           (task) => TaskTile(
                             task: task,
                             selectedDay: _selectedDay,
-                            weekDays: weekDays,
-                            onToggle: () => provider.toggleTask(task),
-                            onDaysChanged: (days) =>
-                                provider.updateTaskDays(task, days),
+                            onToggle: () => provider.toggleTask(task, _selectedDay),
+                            onDelete: () => confirmDeleteTask(context, task),
                             onEdit: () => showEditTaskSheet(
                               context,
                               task: task,
                               anchorDay: _selectedDay,
                             ),
-                            onDelete: () => confirmDeleteTask(context, task),
                           ),
                         )
                         .toList(),

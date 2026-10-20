@@ -32,7 +32,17 @@ class AuthGate extends StatelessWidget {
         // stream) if the user signs out and back in as someone else.
         return ChangeNotifierProvider<TaskProvider>(
           key: ValueKey(user.uid),
-          create: (_) => TaskProvider(uid: user.uid)..init(),
+          create: (_) => TaskProvider(
+            uid: user.uid,
+            calendarSyncTarget:
+                user.providerData.any((info) => info.providerId == 'google.com')
+                ? CalendarSyncTarget.google
+                : user.providerData.any(
+                    (info) => info.providerId == 'apple.com',
+                  )
+                ? CalendarSyncTarget.apple
+                : CalendarSyncTarget.none,
+          )..init(),
           child: const HomeScreen(),
         );
       },

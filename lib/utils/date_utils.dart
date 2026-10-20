@@ -19,38 +19,64 @@ int minutesOfTime(TimeOfDay? time) {
   return time.hour * 60 + time.minute;
 }
 
-String dayLabel(DateTime date) {
+String dayLabel(DateTime date, {bool english = false}) {
   final today = dateOnly(DateTime.now());
   if (isSameDay(date, today)) {
-    return '今天';
+    return english ? 'Today' : '今天';
   }
   if (isSameDay(date, today.add(const Duration(days: 1)))) {
-    return '明天';
+    return english ? 'Tomorrow' : '明天';
   }
-  return '${date.month}/${date.day} ${weekdayShort(date)}';
+  return '${date.month}/${date.day} ${weekdayShort(date, english: english)}';
 }
 
-String assignedDaysLabel(List<DateTime> days) {
+String assignedDaysLabel(List<DateTime> days, {bool english = false}) {
   final sortedDays = days.map(dateOnly).toList()..sort(compareDates);
   if (sortedDays.length == 1) {
-    return dayLabel(sortedDays.first);
+    return dayLabel(sortedDays.first, english: english);
   }
   if (sortedDays.length == 7) {
-    return '每天';
+    return english ? 'Every day' : '每天';
   }
-  return '${sortedDays.length} 天';
+  return english ? '${sortedDays.length} days' : '${sortedDays.length} 天';
 }
 
-String weekdayShort(DateTime date) {
-  const names = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+/// '10/10 – 10/15' for a task that runs across a continuous stretch.
+String spanLabel(List<DateTime> days) {
+  final sorted = days.map(dateOnly).toList()..sort(compareDates);
+  if (sorted.isEmpty) return '';
+  if (sorted.length == 1) return '${sorted.first.month}/${sorted.first.day}';
+  return dateRangeLabel(sorted.first, sorted.last);
+}
+
+/// 'Day 2 of 6' — where [day] falls within a span.
+String spanProgressLabel(
+  List<DateTime> days,
+  DateTime day, {
+  bool english = false,
+}) {
+  final sorted = days.map(dateOnly).toList()..sort(compareDates);
+  final index = sorted.indexWhere((item) => isSameDay(item, day));
+  if (index < 0) return '';
+  return english
+      ? 'Day ${index + 1} of ${sorted.length}'
+      : '第 ${index + 1} 天／共 ${sorted.length} 天';
+}
+
+String weekdayShort(DateTime date, {bool english = false}) {
+  const zhNames = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+  const enNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final names = english ? enNames : zhNames;
   return names[date.weekday - 1];
 }
 
-/// The Monday-to-Sunday week that [date] falls in.
+/// The Sunday-to-Saturday week that [date] falls in.
 List<DateTime> weekContaining(DateTime date) {
   final day = dateOnly(date);
-  final monday = day.subtract(Duration(days: day.weekday - 1));
-  return List.generate(7, (index) => monday.add(Duration(days: index)));
+  // DateTime.weekday is Mon=1 … Sun=7, so `% 7` maps Sunday to 0 and gives
+  // the number of days back to the start of a Sunday-first week.
+  final sunday = day.subtract(Duration(days: day.weekday % 7));
+  return List.generate(7, (index) => sunday.add(Duration(days: index)));
 }
 
 /// Every day from [start] to [end] inclusive.
@@ -80,7 +106,19 @@ String weekRangeLabel(List<DateTime> week) {
 }
 
 /// Full date, e.g. '8月4日 星期二'.
-String fullDateLabel(DateTime date) {
+String fullDateLabel(DateTime date, {bool english = false}) {
+  if (english) {
+    return '${weekdayShort(date, english: true)}, ${date.month}/${date.day}';
+  }
   const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
   return '${date.month}月${date.day}日 星期${weekdays[date.weekday - 1]}';
+}
+
+/// Compact phone-friendly date, e.g. '8月12日（二）'.
+String compactDateLabel(DateTime date, {bool english = false}) {
+  if (english) {
+    return '${date.month}/${date.day} (${weekdayShort(date, english: true)})';
+  }
+  const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+  return '${date.month}月${date.day}日（${weekdays[date.weekday - 1]}）';
 }

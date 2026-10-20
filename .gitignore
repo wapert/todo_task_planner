@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Session/tooling artifacts — not source
+/release/
+/tmp/
+/.codex/

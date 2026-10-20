@@ -1,5 +1,48 @@
 import 'package:flutter/material.dart';
 
+const pageHeaderTitleStyle = TextStyle(
+  fontSize: 24,
+  fontWeight: FontWeight.w800,
+  height: 1.15,
+);
+
+const pageHeaderSubtitleStyle = TextStyle(
+  fontSize: 16,
+  fontWeight: FontWeight.w500,
+  height: 1.2,
+);
+
+class PageHeaderText extends StatelessWidget {
+  const PageHeaderText({super.key, required this.title, this.subtitle});
+
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground =
+        IconTheme.of(context).color ??
+        DefaultTextStyle.of(context).style.color ??
+        Theme.of(context).colorScheme.onSurface;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(title, style: pageHeaderTitleStyle.copyWith(color: foreground)),
+        if (subtitle != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            subtitle!,
+            style: pageHeaderSubtitleStyle.copyWith(
+              color: foreground.withValues(alpha: 0.72),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 /// Page heading with previous/next stepping, shared by the day view (Today)
 /// and the week view (Plan). [onReset] is shown only when the user has
 /// navigated away from the current day/week.
@@ -27,32 +70,19 @@ class PeriodHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final foreground =
+        IconTheme.of(context).color ?? Theme.of(context).colorScheme.onSurface;
     return Row(
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 2),
-                Text(
-                  subtitle!,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFF586174),
-                  ),
-                ),
-              ],
-            ],
-          ),
+          child: PageHeaderText(title: title, subtitle: subtitle),
         ),
         if (onReset != null && resetLabel != null)
-          TextButton(onPressed: onReset, child: Text(resetLabel!)),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: foreground),
+            onPressed: onReset,
+            child: Text(resetLabel!),
+          ),
         IconButton(
           tooltip: previousTooltip,
           icon: const Icon(Icons.chevron_left),
@@ -63,8 +93,6 @@ class PeriodHeader extends StatelessWidget {
           icon: const Icon(Icons.chevron_right),
           onPressed: onNext,
         ),
-        // Clears the settings button floating in the top-right corner.
-        const SizedBox(width: 40),
       ],
     );
   }

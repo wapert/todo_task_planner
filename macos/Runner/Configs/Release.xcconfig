@@ -1,2 +1,12 @@
 #include "../../Flutter/Flutter-Release.xcconfig"
 #include "Warnings.xcconfig"
+
+// Apple-Silicon-only release build.
+//
+// Xcode 27's cctools `lipo` cannot verify two architectures in one call, which
+// breaks Flutter 3.44's universal-framework check (it runs
+// `lipo … -verify_arch arm64 x86_64`). Building for a single architecture
+// sidesteps that: the per-arch verify passes. The trade-off is that this build
+// does not run on Intel Macs.
+ARCHS = arm64
+ONLY_ACTIVE_ARCH = NO

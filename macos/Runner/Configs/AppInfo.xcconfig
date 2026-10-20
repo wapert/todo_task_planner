@@ -7,8 +7,15 @@
 // The application's name. By default this is also the title of the Flutter window.
 PRODUCT_NAME = Todo Task Planner
 
-// The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.todo.taskplanner.todoTaskPlanner
+// The application's bundle identifier. Must match the Firebase app that
+// firebase_options.dart points macOS at, or Firebase rejects the app.
+PRODUCT_BUNDLE_IDENTIFIER = com.wapertech.todoTaskPlanner
+
+// Firebase Auth stores its session in the keychain, which a sandboxed app can
+// only reach with a keychain-access-group entitlement — and that entitlement
+// only resolves when signed with a real team. Ad-hoc signing produces
+// errSecMissingEntitlement (-34018) on sign-in.
+DEVELOPMENT_TEAM = NR6H8UUF43
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.todo.taskplanner. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Wapertech. All rights reserved.
